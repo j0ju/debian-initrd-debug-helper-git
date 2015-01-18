@@ -1,0 +1,103 @@
+#!/bin/sh
+
+PREREQ="busybox add-busybox-applets"
+
+COPY_EXEC_LIST=
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/vconfig"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/brctl"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ip"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ifconfig"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/route"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/netstat"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ss"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ifup /sbin/ifdown /sbin/ifup"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+# remove binary to be replaced "ipconfig"
+rm -f "$DESTDIR"/bin/ipconfig
+
+# ensure we have no the busybox variants of some tools
+for ii in $COPY_EXEC_LIST; do
+  name="${ii##*/}"
+  rm -f \
+    "$DESTDIR/bin/$name" \
+    "$DESTDIR/sbin/$name" \
+    "$DESTDIR/usr/bin/$name" \
+    "$DESTDIR/usr/sbin/$name" \
+  # EO rm -f
+  copy_exec "$ii"
+done
+
+# copy config files
+cp -a /etc/network "$DESTDIR"/etc
+# ensure need files for brctl in place
+cp -a /lib/bridge-utils "$DESTDIR"/lib
+# make udhcpc of busybox work
+mkdir -p "$DESTDIR"/etc/udhcpc/
+cp -a /etc/udhcpc/default.script "$DESTDIR"/etc/udhcpc/default.script
+chmod 755 "$DESTDIR"/etc/udhcpc/default.script
+
+# only allow certain ifup-helpers
+find "$DESTDIR"/etc/network/if-*.d ! -type d | while read file; do
+  script="${file##*/}"
+  case "$script" in
+    vlan | ip ) ;; # keep
+    bridge ) # keep
+      sed -i -r -e 's@^(\s+|.*\$\()(brctl)@\1/sbin/\2@' "$file"
+      ;;
+    * ) rm -f "$file" ;;
+  esac
+done
+
+
+cat > "$DESTDIR"/bin/ipconfig << EOF
+#!/bin/sh
+
+if ! [ -f /ipconfig.lock ]; then
+  exec 3> /ipconfig.lock
+  trap 'rm -f /ipconfig.lock; exit 0;' EXIT QUIT INT KILL TERM HUP USR1 USR2
+
+  mkdir -p /run/network
+  : > /run/net-omit-dropbear-output.conf
+  ifup -a
+
+fi
+EOF
+chmod 755 "$DESTDIR"/bin/ipconfig
+
+mkdir -p "$DESTDIR/scripts/local-bottom"
+cat > "$DESTDIR/scripts/local-bottom/ifdown-all" << EOF
+#!/bin/sh
+
+case "\$1" in
+  prereqs) echo; exit 0;;
+esac
+
+[ -f /run/network/ifstate ] || exit 0
+[ -x /sbin/ifdown ] || exit 0
+
+/sbin/ifdown -a --force
+
+exit 0
+EOF
+chmod 755 "$DESTDIR/scripts/local-bottom/ifdown-all"
+
+
+mkdir -p "$DESTDIR/sbin"
+cat > "$DESTDIR/sbin/udhcpc" << EOF
+#!/bin/sh
+
+exec /bin/busybox udhcpc "\$@"
+EOF
+chmod 755 "$DESTDIR/sbin/udhcpc"
+
+[ -x "$DESTDIR"/sbin/ifconfig ] || ln -s ../bin/busybox "$DESTDIR"/sbin/ifconfig
+[ -x "$DESTDIR"/sbin/ip ] || ln -s ../bin/busybox "$DESTDIR"/sbin/ip
+[ -x "$DESTDIR"/sbin/route ] || ln -s ../bin/busybox "$DESTDIR"/sbin/route
+

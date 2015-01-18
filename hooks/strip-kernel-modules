@@ -1,0 +1,12 @@
+#!/bin/sh
+
+PREREQ=""
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+
+
+find "$DESTDIR"/lib/modules/ -name "*.ko" -exec strip --strip-debug {} +
+

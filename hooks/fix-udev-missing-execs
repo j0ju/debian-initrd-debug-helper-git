@@ -1,0 +1,27 @@
+#!/bin/sh
+
+PREREQ="udev"
+
+FILES=
+FILES="$FILES /usr/share/virtualbox/VBoxCreateUSBNode.sh"
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+for f in $FILES; do
+  [ -x "$DESTDIR/$f" ] && continue
+  mkdir -p "$DESTDIR/${f%/*}"
+
+cat > "$DESTDIR/$f" << EOF
+#!/bin/sh
+# dummy $f
+exit 0
+EOF
+chmod 755 "$DESTDIR/$f"
+
+done
+
+

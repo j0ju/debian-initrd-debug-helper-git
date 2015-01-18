@@ -1,0 +1,119 @@
+#!/bin/sh
+#
+# Add ZoL filesystem capabilities to an initrd, usually for a native ZFS root.
+#
+
+# This hook installs udev rules for ZoL.
+PREREQ=""
+
+# These prerequisites are provided by the zfsutils package. The zdb utility is
+# not strictly required, but it can be useful at the initramfs recovery prompt.
+COPY_EXEC_LIST=
+COPY_EXEC_LIST="$COPY_EXEC_LIST /usr/sbin/splat"
+#COPY_EXEC_LIST="$COPY_EXEC_LIST /usr/sbin/spl"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/zdb /sbin/zpool /sbin/zfs /sbin/mount.zfs"
+
+# These prerequisites are provided by the base system.
+COPY_EXEC_LIST="$COPY_EXEC_LIST /bin/hostname /sbin/blkid /lib/udev/zvol_id /lib/udev/vdev_id /usr/bin/hostid"
+
+# zfs export uses umount -t, busybox does not know
+COPY_EXEC_LIST="$COPY_EXEC_LIST /bin/umount"
+
+# Explicitly specify all kernel modules because automatic dependency resolution
+# is unreliable on many systems.
+MANUAL_ADD_MODULES_LIST="zlib_deflate spl zavl zcommon znvpair zunicode zfs"
+
+UDEV_RULES="69-vdev.rules 60-zvol.rules 90-zfs.rules"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+
+# Generic result code.
+RC=0
+
+for ii in $COPY_EXEC_LIST; do
+	if [ ! -x "$ii" ]; then
+		echo "Error: $ii is not executable."
+		RC=2
+	fi
+done
+
+if [ "$RC" -ne 0 ]; then
+	exit "$RC"
+fi
+
+mkdir -p "$DESTDIR/etc/"
+
+# copy zfs udev rules:
+mkdir -p "$DESTDIR/lib/udev/rules.d"
+for ii in $UDEV_RULES; do
+	cp -p "/lib/udev/rules.d/$ii" "$DESTDIR/lib/udev/rules.d"
+done
+
+# ZDB uses pthreads for some functions, but the library dependency is not
+# automatically detected. The `find` utility and extended `cp` options are
+# used here because libgcc_s.so could be in a subdirectory of /lib for
+# multi-arch installations.
+cp --target-directory="$DESTDIR" --parents $(find /lib -type f -name libgcc_s.so.1)
+
+for ii in $COPY_EXEC_LIST; do
+	copy_exec "$ii"
+done
+
+for ii in $MANUAL_ADD_MODULES_LIST; do
+  manual_add_modules "$ii"
+done
+
+if [ -f "/etc/hostname" ]; then
+	cp -p "/etc/hostname" "$DESTDIR/etc/"
+else
+	hostname >"$DESTDIR/etc/hostname"
+fi
+
+# The spl package ensures that the /etc/hostid file exists.
+# NB: Commentary in the spl.postinst script.
+cp -p "/etc/hostid" "$DESTDIR/etc/hostid"
+
+# copy zpool.cache
+mkdir -p "$DESTDIR/etc/zfs"
+#if [ ! -f "/etc/zfs/zpool.cache" ]; then
+  POOL="$(awk '$2 == "/" && $3 == "zfs" {print $1} ' /proc/mounts)"
+  POOL="${POOL%%/*}"
+  if [ -n "$POOL" ]; then
+    zpool set cachefile=/etc/zfs/zpool.cache "$POOL"
+    cp /etc/zfs/zpool.cache "$DESTDIR/etc/zfs"
+  fi
+#fi
+
+# ensure /etc/mtab exists
+ln -s /proc/mounts "$DESTDIR"/etc/mtab
+
+# rename zfs module so that it not loaded automatically on zvol detection
+find "$DESTDIR"/lib/modules -name "zfs.ko" -exec mv {} {}.disabled \;
+
+cat > "$DESTDIR"/bin/rczfs << EOF
+#!/bin/sh -x
+
+# rename zfs moduled, previously renamed to disable automatic loading
+  find /lib/modules -name "zfs.ko.disabled" -exec echo mv {} {} \; | sed 's/\.disabled$//' | sh
+  /sbin/depmod -a
+
+# Load the module now to get consistent automatic pool import behavior.
+  rm -f /etc/zfs/zpool.cache
+  /sbin/rmmod zfs 2> /dev/null
+  /sbin/modprobe zfs || modprobe zfs
+
+EOF
+chmod 755 "$DESTDIR"/bin/rczfs
+
+if [ -f /root/scripts/zfs-snapshots.sh ]; then
+  mkdir -p "$DESTDIR"/bin
+  cp /root/scripts/zfs-snapshots.sh "$DESTDIR"/bin/zfs-snapshots.sh
+  chmod 755 "$DESTDIR"/bin/zfs-snapshots.sh
+fi
+

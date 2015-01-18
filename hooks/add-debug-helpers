@@ -1,0 +1,100 @@
+#!/bin/bash
+
+PREREQ="busybox add-busybox-applets"
+
+CMDS=
+CMDS="$CMDS openvt chvt deallocvt"
+CMDS="$CMDS strace ltrace ldd"
+CMDS="$CMDS flashrom"
+CMDS="$CMDS gdisk cfdisk fdisk"
+CMDS="$CMDS e2fsck tune2fs"
+CMDS="$CMDS btrfs"
+CMDS="$CMDS gpm"
+CMDS="$CMDS tcpdump"
+CMDS="$CMDS mii-tool ethtool rfkill"
+CMDS="$CMDS ps pkill pgrep"
+CMDS="$CMDS iostat"
+CMDS="$CMDS htop"
+CMDS="$CMDS ddrescue"
+CMDS="$CMDS ip vconfig brctl ifconfig"
+CMDS="$CMDS run-parts"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = "prereqs" ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+for cmd in $CMDS; do
+  if file="$(which "$cmd")"; then
+    rm -f "$DESTDIR/bin/$cmd"
+    copy_exec "$file" "/bin"
+  else
+    echo "$0: warning $cmd not avail, thus not installed" >&2
+  fi
+done
+
+LOCAL_SCRIPT="${0##*/}"
+
+cat > "$DESTDIR"/bin/rcgpm << EOF
+#!/bin/sh -x
+
+pkill ^gpm$
+gpm -m /dev/input/mice -t imps2
+EOF
+chmod 755 "$DESTDIR"/bin/rcgpm
+
+for d in /etc/terminfo /lib/terminfo /usr/share/terminfo; do
+  mkdir -p "$DESTDIR/${d%/*}"
+  cp -a "$d" "$DESTDIR/${d%/*}"
+done
+
+mkdir -p "$DESTDIR/scripts/local-bottom"
+cat > "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT" << EOF
+#!/bin/sh
+[ "\$1" = prereqs ] && exit 0
+
+pkill -f /scripts/local-top/$LOCAL_SCRIPT 2> /dev/null 1>&2 || :
+pkill -f gpm 1> /dev/null 2>&1 || :
+
+[ -x /bin/deallocvt ] && /bin/deallocvt
+[ -x /bin/chvt ] && /bin/chvt 1
+
+exit 0
+EOF
+chmod 755 "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT"
+
+
+mkdir -p "$DESTDIR/scripts/local-top"
+cat > "$DESTDIR/scripts/local-top/$LOCAL_SCRIPT" << EOF
+#!/bin/sh
+
+PREREQ="udev"
+
+prereqs() { echo "\$PREREQ"; exit 0; }
+[ "\$1" = prereqs ] && prereqs
+
+
+if [ "\$1" = getty ]; then
+  clear="\$(clear)"
+  echo -n "\$clear"
+  while [ -x /bin/busybox ]; do
+    stty -echo
+    echo -n "\${clear}Press a key."
+    read foo
+    stty echo
+    [ -x /bin/sh ] && PATH=/sbin:/bin:/usr/sbin:/usr/bin /bin/sh -l
+  done
+  echo -n "\$clear"
+  exit 0
+fi
+
+[ -x /bin/openvt ] && /bin/openvt -c 13 "/scripts/local-top/$LOCAL_SCRIPT" getty || :
+[ -x /bin/rcgpm ] && /bin/rcgpm || :
+
+exit 0
+EOF
+chmod 755 "$DESTDIR/scripts/local-top/$LOCAL_SCRIPT"
+

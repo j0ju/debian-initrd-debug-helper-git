@@ -1,0 +1,14 @@
+#!/bin/sh -e
+
+PREREQ="udev"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+if [ -e /etc/udev/rules.d/70-persistent-net.rules ]; then
+  cp -p /etc/udev/rules.d/70-persistent-net.rules $DESTDIR/lib/udev/rules.d/
+fi

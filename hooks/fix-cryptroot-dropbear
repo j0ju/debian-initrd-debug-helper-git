@@ -1,0 +1,89 @@
+#!/bin/sh
+
+PREREQ="busybox dropbear"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+[ -z "$DESTDIR" ] && exit 1
+
+# ensure all libnss stuff is there
+ls /lib/*/libns[ls]*.so* | sed 's@/[^/]\+$@@g' | sort -u | while read dir; do
+  mkdir -p "$DESTDIR"/$dir
+  cp "$dir"/libns[ls]*.so* "$DESTDIR"/$dir
+done
+
+# don't use /root as ssh-key are left behind after switch_root, just a minor space loss
+rm -rf "$DESTDIR"/root/.ssh
+
+: > "$DESTDIR"/etc/shells
+echo /bin/sh >> "$DESTDIR"/etc/shells
+echo /bin/CRYPT >> "$DESTDIR"/etc/shells
+
+mkdir -p "$DESTDIR"/.ssh
+chmod 600 "$DESTDIR"/.ssh
+: > "$DESTDIR"/etc/passwd
+while IFS=: read user foo uid foo foo home foo; do
+  [ $uid -lt 1000 -a $uid -ne 0 ] && continue
+  [ -f "$home/.ssh/authorized_keys" ] || continue
+  desthome="$home"
+  shell=/bin/CRYPT
+  [ $uid -eq 0 ] && desthome=/
+  [ $uid -eq 0 ] && shell=/bin/sh
+  mkdir -p "$DESTDIR/$desthome"/.ssh
+  cat "$home"/.ssh/authorized_keys > "$DESTDIR/$desthome"/.ssh/authorized_keys
+  chmod 600 "$DESTDIR/$desthome"/.ssh/authorized_keys
+  echo "$user:x:0:0:$user:$desthome:$shell" >> "$DESTDIR"/etc/passwd
+  [ $uid -eq 0 ] && echo "unlock:x:0:0:root:/:/bin/CRYPT" >> "$DESTDIR"/etc/passwd
+done < /etc/passwd
+
+# if dropbear is active use real hostkey from dropbear
+if pidof -s dropbear > /dev/null; then
+  for i in dss rsa; do 
+    if [ -f /etc/dropbear/dropbear_${i}_host_key ]; then
+      cat /etc/dropbear/dropbear_${i}_host_key > "$DESTDIR"/etc/dropbear/dropbear_${i}_host_key
+      chmod 600 "$DESTDIR"/etc/dropbear/dropbear_${i}_host_key
+    fi
+  done
+fi
+if pidof -s sshd > /dev/null; then
+  if ! /usr/lib/dropbear/dropbearconvert openssh dropbear /etc/ssh/ssh_host_rsa_key "$DESTDIR"/etc/dropbear/dropbear_rsa_host_key 1> /dev/null 2>&1; then
+    echo "$0: ERROR:converting /etc/ssh/ssh_host_rsa_key failed" >&2
+    exit 1
+  fi
+  if ! /usr/lib/dropbear/dropbearconvert openssh dropbear /etc/ssh/ssh_host_dsa_key "$DESTDIR"/etc/dropbear/dropbear_dss_host_key 1> /dev/null 2>&1; then
+    echo "$0: ERROR:converting /etc/ssh/ssh_host_dsa_key failed" >&2
+    exit 1
+  fi
+  chmod 600 \
+    "$DESTDIR"/etc/dropbear/dropbear_rsa_host_key \
+    "$DESTDIR"/etc/dropbear/dropbear_dss_host_key
+fi
+#mv "$DESTDIR"/scripts/init-premount/dropbear "$DESTDIR"/scripts/init-top/dropbear
+
+cat > "$DESTDIR"/bin/CRYPT << 'EOF'
+#!/bin/sh
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+/scripts/local-top/cryptroot
+case "$1" in
+  skip | -f ) : ;;
+  * )
+    pkill -9 ^askpass
+    pkill dropbear
+    ;;
+esac
+
+EOF
+chmod 755 "$DESTDIR"/bin/CRYPT
+
+copy_exec /usr/bin/pgrep /bin/pgrep
+copy_exec /usr/bin/pkill /bin/pkill
+
+copy_exec /usr/bin/scp
+

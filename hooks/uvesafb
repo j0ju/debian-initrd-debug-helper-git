@@ -1,0 +1,91 @@
+#!/bin/sh
+
+PREREQ=""
+
+COPY_EXEC_LIST=
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/v86d"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /bin/fbset"
+
+COPY_LIST=
+COPY_LIST="$COPY_LIST /etc/fb.modes"
+
+MODULES_LIST=
+MODULES_LIST="$MODULES_LIST uvesafb"
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+
+set -e
+
+for ii in $COPY_EXEC_LIST; do
+	if [ ! -x "$ii" ]; then
+		echo "Error: $ii is not executable." 1>&2
+		exit 2
+	fi
+	copy_exec "$ii"
+done
+
+for ii in $MODULES_LIST; do
+	manual_add_modules "$ii"
+done
+
+for ii in $COPY_LIST; do
+  mkdir -p "$DESTDIR/${ii%/*}"
+  cp -a "${ii}" "$DESTDIR/${ii}"
+done
+
+mkdir -p "$DESTDIR/bin"
+cat > "$DESTDIR/bin/uvesafb" << EOF
+#!/bin/sh
+if [ -z "\$1" ]; then
+  echo '\$1 should be one of:'
+  awk '/^mode/ && /-60"/ {print \$2}' /etc/fb.modes
+else
+  set -x
+  cmdline_uvesafb_fbset="\$1" /bin/sh /scripts/local-top/uvesafb
+  [ -x /bin/rcgpm ] && /bin/rcgpm restart
+fi
+EOF
+chmod 755 "$DESTDIR/bin/uvesafb"
+
+cat > "$DESTDIR/scripts/local-top/uvesafb" << EOF
+#!/bin/sh
+
+PREREQ="udev"
+
+prereqs() { echo "\$PREREQ"; exit 0; }
+[ "\$1" = prereqs ] && prereqs
+
+
+parse_cmdline() {
+  local ___i___ ___k___ ___v___
+  for ___i___; do
+    ___k___="\${___i___%%=*}"
+    ___v___="\${___i___#*=}"
+    eval "cmdline_\$___k___='\$___v___'"
+  done
+}
+
+parse_cmdline \$(cat /proc/cmdline)
+
+exec < /dev/tty1 > /dev/tty1 2>&1
+
+if [ -n "\$cmdline_uvesafb_fbset" ]; then
+  sleep 2
+  modprobe uvesafb
+  case "\$cmdline_uvesafb_fbset" in
+    *x* | *x*-* )
+      sleep 2
+      fbset "\$cmdline_uvesafb_fbset" -a
+      ;;
+  esac
+fi
+
+exit 0
+EOF
+chmod 755 "$DESTDIR/scripts/local-top/uvesafb"
+

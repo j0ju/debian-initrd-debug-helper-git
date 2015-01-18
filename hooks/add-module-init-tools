@@ -1,0 +1,17 @@
+#!/bin/sh
+
+PREREQ=""
+
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+copy_exec /sbin/depmod
+copy_exec /sbin/insmod
+copy_exec /sbin/modinfo
+copy_exec /sbin/modprobe
+
+/sbin/depmod --basedir="$DESTDIR" -a "$version"
+
