@@ -2,7 +2,6 @@
 
 PREREQ=""
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
@@ -11,12 +10,12 @@ echo "I: add '$0'"
 
 mkdir -p "$DESTDIR"/etc "$DESTDIR"/conf/conf.d
 
-set -e
 if [ -f "$DESTDIR"/conf/conf.d/cryptroot ]; then
   grep resume "$DESTDIR"/conf/conf.d/cryptroot > "$DESTDIR"/conf/conf.d/cryptroot.new
-  grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new
+  grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new 
 fi
 
+set -e
 if [ -f /etc/crypttab ]; then
   while read name dev key type comment attrib; do
     case "$name" in
