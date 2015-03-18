@@ -91,7 +91,7 @@ mkdir -p "$DESTDIR/etc/zfs"
 #fi
 
 # ensure /etc/mtab exists
-ln -s /proc/mounts "$DESTDIR"/etc/mtab
+ln -sf /proc/mounts "$DESTDIR"/etc/mtab
 
 # rename zfs module so that it not loaded automatically on zvol detection
 find "$DESTDIR"/lib/modules -name "zfs.ko" -exec mv {} {}.disabled \;
