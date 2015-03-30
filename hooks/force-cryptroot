@@ -8,6 +8,9 @@ prereqs() { echo "$PREREQ"; exit 0; }
 . /usr/share/initramfs-tools/hook-functions
 echo "I: add '$0'"
 
+( CRYPTROOT=y
+  . /usr/share/initramfs-tools/hooks/cryptroot
+)
 
 mkdir -p "$DESTDIR"/etc "$DESTDIR"/conf/conf.d
 
