@@ -90,6 +90,7 @@ chmod 755 "$DESTDIR/scripts/local-bottom/ifdown-all"
 
 
 mkdir -p "$DESTDIR/sbin"
+rm -f "$DESTDIR/sbin/udhcpc"
 cat > "$DESTDIR/sbin/udhcpc" << EOF
 #!/bin/sh
 
