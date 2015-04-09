@@ -3,7 +3,8 @@
 PREREQ="busybox add-busybox-applets"
 
 CMDS=
-CMDS="$CMDS openvt chvt deallocvt"
+CMDS="$CMDS openvt chvt deallocvt fgconsole"
+CMDS="$CMDS mountpoint"
 CMDS="$CMDS strace ltrace ldd"
 CMDS="$CMDS flashrom"
 CMDS="$CMDS gdisk cfdisk fdisk"
@@ -18,6 +19,7 @@ CMDS="$CMDS htop"
 CMDS="$CMDS ddrescue"
 CMDS="$CMDS ip vconfig brctl ifconfig"
 CMDS="$CMDS run-parts"
+CMDS="$CMDS tty reset stty"
 
 
 prereqs() { echo "$PREREQ"; exit 0; }
@@ -36,13 +38,18 @@ for cmd in $CMDS; do
   fi
 done
 
-LOCAL_SCRIPT="${0##*/}"
+VT=13
+LOCAL_SCRIPT="vt$VT"
+
+mkdir -p "$DESTDIR/var" "$DESTDIR/usr/sbin" "$DESTDIR/usr/bin"
+ln -s /run "$DESTDIR/var/run"
+ln -s ../../bin/gpm "$DESTDIR/usr/sbin"/gpm
 
 cat > "$DESTDIR"/bin/rcgpm << EOF
-#!/bin/sh -x
-
-pkill ^gpm$
-gpm -m /dev/input/mice -t imps2
+#!/bin/sh
+set -x
+kill \$(cat /run/gpm.pid 2> /dev/null) 2> /dev/null
+/usr/sbin/gpm -m /dev/input/mice -t imps2
 EOF
 chmod 755 "$DESTDIR"/bin/rcgpm
 
@@ -51,33 +58,31 @@ for d in /etc/terminfo /lib/terminfo /usr/share/terminfo; do
   cp -a "$d" "$DESTDIR/${d%/*}"
 done
 
-mkdir -p "$DESTDIR/scripts/local-bottom"
-cat > "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT" << EOF
+mkdir -p "$DESTDIR/scripts/init-bottom"
+cat > "$DESTDIR/scripts/init-bottom/$LOCAL_SCRIPT" << EOF
 #!/bin/sh
 [ "\$1" = prereqs ] && exit 0
 
-pkill -f /scripts/local-top/$LOCAL_SCRIPT 2> /dev/null 1>&2 || :
-pkill -f gpm 1> /dev/null 2>&1 || :
+kill \$(cat /run/$LOCAL_SCRIPT.pid 2> /dev/null) 2> /dev/null || :
+kill \$(cat /run/gpm.pid 2> /dev/null) 2> /dev/null || :
+kill \$(ls -l /proc/[1-9]*/fd/[0-9]* 2> /dev/null | sed -n '/\/dev\/tty'$VT'$/ s@^.*/proc/\([0-9]\+\).*$@\1@ p') 2> /dev/null
 
 [ -x /bin/deallocvt ] && /bin/deallocvt
 [ -x /bin/chvt ] && /bin/chvt 1
 
 exit 0
 EOF
-chmod 755 "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT"
 
-
-mkdir -p "$DESTDIR/scripts/local-top"
-cat > "$DESTDIR/scripts/local-top/$LOCAL_SCRIPT" << EOF
+mkdir -p "$DESTDIR/scripts/init-top"
+cat > "$DESTDIR/scripts/init-top/$LOCAL_SCRIPT" << EOF
 #!/bin/sh
-
-PREREQ="udev"
+PREREQ="udev keymap"
 
 prereqs() { echo "\$PREREQ"; exit 0; }
 [ "\$1" = prereqs ] && prereqs
 
-
 if [ "\$1" = getty ]; then
+  echo \$$ > /run/$LOCAL_SCRIPT.pid
   clear="\$(clear)"
   echo -n "\$clear"
   while [ -x /bin/busybox ]; do
@@ -85,16 +90,26 @@ if [ "\$1" = getty ]; then
     echo -n "\${clear}Press a key."
     read foo
     stty echo
-    [ -x /bin/sh ] && PATH=/sbin:/bin:/usr/sbin:/usr/bin /bin/sh -l
+    [ -x /bin/sh ] && \
+      PATH=/sbin:/bin:/usr/sbin:/usr/bin \
+      PS1='\w\$ ' \
+        /bin/sh -l
   done
   echo -n "\$clear"
   exit 0
 fi
 
-[ -x /bin/openvt ] && /bin/openvt -c 13 "/scripts/local-top/$LOCAL_SCRIPT" getty || :
+[ -x /bin/openvt ] && /bin/openvt -c $VT "/scripts/init-top/$LOCAL_SCRIPT" getty || :
 [ -x /bin/rcgpm ] && /bin/rcgpm || :
 
 exit 0
 EOF
-chmod 755 "$DESTDIR/scripts/local-top/$LOCAL_SCRIPT"
+chmod 755 "$DESTDIR/scripts/init-top/$LOCAL_SCRIPT" "$DESTDIR/scripts/init-bottom/$LOCAL_SCRIPT"
+cp -a "$DESTDIR/scripts/init-bottom/$LOCAL_SCRIPT" "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT"
+
+cat > "$DESTDIR"/etc/profile << EOF
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+PS1='(initramfs) \w\$ '
+[ -x /bin/ps ] && alias ps=/bin/ps
+EOF
 
