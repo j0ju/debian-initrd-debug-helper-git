@@ -71,8 +71,8 @@ fi
 EOF
 chmod 755 "$DESTDIR"/bin/ipconfig
 
-mkdir -p "$DESTDIR/scripts/local-bottom"
-cat > "$DESTDIR/scripts/local-bottom/ifdown-all" << EOF
+mkdir -p "$DESTDIR/scripts/init-bottom"
+cat > "$DESTDIR/scripts/init-bottom/ifdown-all" << EOF
 #!/bin/sh
 
 case "\$1" in
@@ -86,10 +86,11 @@ esac
 
 exit 0
 EOF
-chmod 755 "$DESTDIR/scripts/local-bottom/ifdown-all"
+chmod 755 "$DESTDIR/scripts/init-bottom/ifdown-all"
 
 
 mkdir -p "$DESTDIR/sbin"
+rm -f "$DESTDIR/sbin/udhcpc"
 cat > "$DESTDIR/sbin/udhcpc" << EOF
 #!/bin/sh
 
