@@ -1,12 +1,19 @@
 #!/bin/sh
 
-PREREQ=""
+PREREQ="cryptroot"
 
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
+if ! [ -f /usr/share/initramfs-tools/hooks/cryptroot ]; then
+  echo "W: /usr/share/initramfs-tools/hooks/cryptroot does not exist."
+fi
 . /usr/share/initramfs-tools/hook-functions
 echo "I: add '$0'"
 
+( 
+  CRYPTSETUP=y
+  . /usr/share/initramfs-tools/hooks/cryptroot
+)
 
 mkdir -p "$DESTDIR"/etc "$DESTDIR"/conf/conf.d
 
@@ -15,6 +22,7 @@ if [ -f "$DESTDIR"/conf/conf.d/cryptroot ]; then
   grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new 
 fi
 
+# order /conf/conf.d/cryptroot
 set -e
 if [ -f /etc/crypttab ]; then
   while read name dev key type comment attrib; do
@@ -23,8 +31,27 @@ if [ -f /etc/crypttab ]; then
     esac
 
     [ "$type" = luks ] || continue
-    echo "target=$name,source=$dev,key=$key,rootdev"
-  done < /etc/crypttab >> "$DESTDIR"/conf/conf.d/cryptroot.new
+    echo "target=$name,source=$dev,key=$key,rootdev" >> "$DESTDIR"/conf/conf.d/cryptroot.new
+  done < /etc/crypttab
 fi
-
 mv -f "$DESTDIR"/conf/conf.d/cryptroot.new "$DESTDIR"/conf/conf.d/cryptroot
+
+# patch cryptroot script, to have an TTY
+for i in "$DESTDIR"/scripts/*/cryptroot; do
+  [ -f "$i" ] || continue
+  case "$i" in
+    */local-block/* ) continue ;; # ignore local-block scripts
+  esac
+  
+  sed -ri \
+    -e '/^[.] \/scripts\/functions/ i dev=/dev/tty$(fgconsole)' \
+    -e '/^[.] \/scripts\/functions/ i tty > /dev/null || exec < "$dev" 1> "$dev" 2> "$dev"' \
+    -e '/^[.] \/scripts\/functions/ i '"### MARKER $0 ###" \
+      "$i"
+  if ! grep "### MARKER $0 ###" "$i" > /dev/null; then
+    echo "W: cryptroot might be broken, no patch '### MARKER' found in $i" 
+  fi
+  chmod 755 "$i"
+done
+
+
