@@ -1,0 +1,58 @@
+#!/bin/bash
+
+PREREQ=""
+
+CMDS=
+CMDS="$CMDS tsort"
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = "prereqs" ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+echo "I: add '$0'"
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+for cmd in $CMDS; do
+  if file="$(which "$cmd")"; then
+    rm -f "$DESTDIR/bin/$cmd"
+    copy_exec "$file" "/bin"
+  else
+    echo "$0: warning $cmd not avail, thus not installed" >&2
+  fi
+done
+
+sed -i -e 's/run_scripts/_\0_DISABLED_/' "$DESTDIR"/scripts/functions
+
+cat >> "$DESTDIR"/scripts/functions << EOF
+#--- $0 ---
+run_scripts() {
+	local initdir=\${1}
+	if [ -d ${initdir} ]; then
+		echo "\$initdir" >> /run/run_scripts.log
+	else
+		echo "E: \$initdir does not exist, skipping" >> /run/run_scripts.log
+		return
+	fi
+
+	shift
+	_run_scripts_gen_order "\$initdir" | while read s; do
+		[ -e /conf/param.conf ] && . /conf/param.conf
+		
+		echo "\$initdir/\$s \$@" >> /run/run_scripts.log
+		"\$initdir/\$s" "\$@"
+	done
+}
+
+_run_scripts_gen_order() {
+	local initdir=\${1}
+	local s sdep
+	for s in "\$initdir"/*; do
+		[ "\$s" = "\$initdir/ORDER" ] && continue
+		[ -x "\$s" ] || continue
+		s="\${s##*/}"
+		for sdep in "$s" \$("\$initdir/\$s" prereqs); do
+			[ -x "\$initdir/\$sdep" ] || continue
+			echo "\${sdep} \${s##*/}"
+		done
+        done | tsort
+}
+EOF
