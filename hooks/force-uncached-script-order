@@ -36,7 +36,7 @@ run_scripts() {
 	shift
 	_run_scripts_gen_order "\$initdir" | while read s; do
 		[ -e /conf/param.conf ] && . /conf/param.conf
-		
+
 		echo "\$initdir/\$s \$@" >> /run/run_scripts.log
 		"\$initdir/\$s" "\$@"
 	done
@@ -48,9 +48,11 @@ _run_scripts_gen_order() {
 	for s in "\$initdir"/*; do
 		[ "\$s" = "\$initdir/ORDER" ] && continue
 		[ -x "\$s" ] || continue
+		[ -f "\$s" ] || continue
 		s="\${s##*/}"
 		for sdep in "$s" \$("\$initdir/\$s" prereqs); do
 			[ -x "\$initdir/\$sdep" ] || continue
+			[ -f "\$initdir/\$sdep" ] || continue
 			echo "\${sdep} \${s##*/}"
 		done
         done | tsort
