@@ -10,7 +10,7 @@ fi
 . /usr/share/initramfs-tools/hook-functions
 echo "I: add '$0'"
 
-( 
+(
   CRYPTSETUP=y
   . /usr/share/initramfs-tools/hooks/cryptroot
 )
@@ -19,10 +19,9 @@ mkdir -p "$DESTDIR"/etc "$DESTDIR"/conf/conf.d
 
 if [ -f "$DESTDIR"/conf/conf.d/cryptroot ]; then
   grep resume "$DESTDIR"/conf/conf.d/cryptroot > "$DESTDIR"/conf/conf.d/cryptroot.new
-  grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new 
+  grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new
 fi
 
-# order /conf/conf.d/cryptroot
 set -e
 if [ -f /etc/crypttab ]; then
   while read name dev key type comment attrib; do
@@ -36,13 +35,14 @@ if [ -f /etc/crypttab ]; then
 fi
 mv -f "$DESTDIR"/conf/conf.d/cryptroot.new "$DESTDIR"/conf/conf.d/cryptroot
 
+
 # patch cryptroot script, to have an TTY
 for i in "$DESTDIR"/scripts/*/cryptroot; do
   [ -f "$i" ] || continue
   case "$i" in
     */local-block/* ) continue ;; # ignore local-block scripts
   esac
-  
+
   sed -ri \
     -e '/^[.] \/scripts\/functions/ i dev=/dev/tty$(fgconsole)' \
     -e '/^[.] \/scripts\/functions/ i tty > /dev/null || exec < "$dev" 1> "$dev" 2> "$dev"' \
