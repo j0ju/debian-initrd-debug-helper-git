@@ -2,12 +2,12 @@
 
 PREREQ=""
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
 echo "I: add '$0'"
 
+[ -x "/usr/share/initramfs-tools/hooks/keymap" ] && ( KEYMAP=y . /usr/share/initramfs-tools/hooks/keymap; )
 
 dumpkeys < /dev/tty1 | gzip > "$DESTDIR"/etc/boottime.kmap.gz
 
