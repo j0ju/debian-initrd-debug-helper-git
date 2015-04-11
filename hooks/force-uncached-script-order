@@ -42,7 +42,7 @@ run_scripts() {
 	done
 }
 
-_run_scripts_gen_order() {
+_run_scripts_get_dependencies() {
 	local initdir=\${1}
 	local s sdep
 	for s in "\$initdir"/*; do
@@ -50,11 +50,15 @@ _run_scripts_gen_order() {
 		[ -x "\$s" ] || continue
 		[ -f "\$s" ] || continue
 		s="\${s##*/}"
-		for sdep in "$s" \$("\$initdir/\$s" prereqs); do
+		for sdep in "\$s" \$("\$initdir/\$s" prereqs); do
 			[ -x "\$initdir/\$sdep" ] || continue
 			[ -f "\$initdir/\$sdep" ] || continue
 			echo "\${sdep} \${s##*/}"
 		done
-        done | tsort
+  done
+}
+_run_scripts_gen_order() {
+	local initdir=\${1}
+	_run_scripts_get_dependencies "\${initdir}" | tsort
 }
 EOF
