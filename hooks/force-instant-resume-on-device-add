@@ -2,7 +2,6 @@
 
 PREREQ=""
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
@@ -11,20 +10,20 @@ echo "I: add '$0'"
 
 mkdir -p "$DESTDIR"/etc/udev/rules.d
 
-cat > "$DESTDIR"/etc/udev/rules.d/force-resume-on-device-add.rules << EOF
+cat > "$DESTDIR"/etc/udev/rules.d/99-force-resume-on-device-add.rules << EOF
+
 # force instant resume try on disk appearence
 ACTION=="add", PROGRAM+="/bin/FORCE-resume"
+
 EOF
 
 cat > "$DESTDIR/bin/FORCE-resume" << EOF
 #!/bin/sh
-[ "\$DEVTYPE" = disk ] || exit 1
-exec >> /FORCE-resume.\$DEVNAME.log 2>&1
+exec >> /FORCE-resume.log 2>&1
 echo
-echo "### \$DEVNAME"
+echo "### $(/bin/busybox date)"
 env
 (
-  set -x
   for x in \$(cat /proc/cmdline); do
     case "\$x" in
       resume=* )
@@ -36,15 +35,10 @@ env
     esac
   done
   [ "\$noresume" = yes ] && exit 0
+
   vgchange -ay
-  for i in 1 2 3 4 5 6 7 8 9 10; do
-    if [ -b "/dev/\$DEVNAME" ]; then
-      if [ -d "/sys/\$DEVPATH" ]; then
-        if [ "\$(cat /sys/\$DEVPATH/size)" -gt 0 ]; then
-          exec sh -x /scripts/local-premount/resume
-        fi
-      fi
-    fi
+  for i in 1 2 3 4 5; do
+    sh /scripts/local-premount/resume
     sleep 1
   done
 ) &
