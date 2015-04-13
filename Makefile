@@ -8,10 +8,11 @@ all:
 	echo "	make install"
 
 install:
-	set -e; \
+	@set -e; \
 	for f in hooks/* scripts/*; do \
 		dir="$(INITRAMDIR)/$${f%/*}"; \
 		dest="$(INITRAMDIR)/$${f}"; \
+		echo "INSTALL $${f} -> $${dest}"; \
 		mkdir -p "$$dir"; \
 		cp -a "$$f" "$$dest"; \
 		chown root: "$$dest"; \

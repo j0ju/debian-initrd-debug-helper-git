@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PREREQ=""
+PREREQ="udev"
 
 COPY_EXEC_LIST=
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/v86d"
@@ -46,13 +46,16 @@ if [ -z "\$1" ]; then
   awk '/^mode/ && /-60"/ {print \$2}' /etc/fb.modes
 else
   set -x
-  cmdline_uvesafb_fbset="\$1" /bin/sh /scripts/local-top/uvesafb
+  cmdline_uvesafb_fbset="\$1" /bin/sh /scripts/init-top/uvesafb
   [ -x /bin/rcgpm ] && /bin/rcgpm restart
 fi
 EOF
 chmod 755 "$DESTDIR/bin/uvesafb"
 
-cat > "$DESTDIR/scripts/local-top/uvesafb" << EOF
+SCRIPT="$DESTDIR/scripts/init-top/uvesafb" 
+#SCRIPT="$DESTDIR/scripts/local-top/uvesafb" 
+
+cat > "$SCRIPT" << EOF
 #!/bin/sh
 
 PREREQ="udev"
@@ -60,6 +63,14 @@ PREREQ="udev"
 prereqs() { echo "\$PREREQ"; exit 0; }
 [ "\$1" = prereqs ] && prereqs
 
+udev_settle() {
+  if command -v udevadm >/dev/null 2>&1; then
+    udevadm settle --timeout=30
+  elif command -v udevsettle >/dev/null 2>&1; then
+    udevsettle --timeout=30
+  fi
+  return 0
+}
 
 parse_cmdline() {
   local ___i___ ___k___ ___v___
@@ -69,6 +80,8 @@ parse_cmdline() {
     eval "cmdline_\$___k___='\$___v___'"
   done
 }
+
+udev_settle
 
 parse_cmdline \$(cat /proc/cmdline)
 
@@ -87,5 +100,5 @@ fi
 
 exit 0
 EOF
-chmod 755 "$DESTDIR/scripts/local-top/uvesafb"
+chmod 755 "$SCRIPT"
 

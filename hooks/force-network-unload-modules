@@ -14,7 +14,11 @@ LOCAL_SCRIPT="${0##*/}"
 mkdir -p "$DESTDIR/scripts/local-bottom"
 cat > "$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT" << EOF
 #!/bin/sh
-[ "\$1" = prereqs ] && exit 0
+PREREQ="ifdown-all"
+if [ "\$1" = prereqs ]; then
+  echo "\$PREREQ"
+  exit 0
+fi
 
 for i in /sys/class/net/*/device/driver; do
   [ -d "\$i" ] || continue
