@@ -16,6 +16,7 @@ install:
 		mkdir -p "$$dir"; \
 		cp -a "$$f" "$$dest"; \
 		chown root: "$$dest"; \
+		chmod 744 "$$dest"; \
 	done
 
 update:
