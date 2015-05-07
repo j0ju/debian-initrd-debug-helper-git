@@ -2,10 +2,17 @@
 
 PREREQ=""
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+case "$X_ADD_MODULE_INITUTILS" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
+
+
 echo "I: add '$0'"
 
 copy_exec /sbin/depmod
