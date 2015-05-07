@@ -8,6 +8,12 @@ CMDS="$CMDS tsort"
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+case "$X_FORCE_UNCACHED_SCRIPT_ORDER" in
+  0 | no | n ) exit 0;;
+  * ) : ;;
+esac
+
 echo "I: add '$0'"
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
