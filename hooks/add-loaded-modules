@@ -3,12 +3,16 @@
 PREREQ=""
 MANUAL_ADD_MODULES_LIST="$(lsmod | awk '$2 ~ "[0-9]+" {print $1}')"
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
-echo "I: add '$0'"
 
+case "$X_ADD_LOADED_MODULES" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
+echo "I: add '$0'"
 
 for ii in $MANUAL_ADD_MODULES_LIST; do
 	manual_add_modules "$ii"
