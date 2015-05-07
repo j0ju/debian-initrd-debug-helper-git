@@ -25,6 +25,13 @@ CMDS="$CMDS tty reset stty"
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+case "$X_ADD_DEBUG_HELPERS" in
+  0 | no | n ) exit 0;;
+esac
+
+
+
 echo "I: add '$0'"
 
 
