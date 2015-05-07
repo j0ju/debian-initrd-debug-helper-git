@@ -7,10 +7,14 @@ APPLET_BLACKLIST="$APPLET_BLACKLIST hostid"
 #APPLET_BLACKLIST="$APPLET_BLACKLIST depmod modprobe"
 #APPLET_BLACKLIST="$APPLET_BLACKLIST ip ifconfig"
 
-
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+case "$X_ADD_BUSYBOX_APPLETS" in
+  0 | no | n ) exit 0;;
+esac
+
 echo "I: add '$0'"
 
 set -e
