@@ -9,6 +9,7 @@ prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
 
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
 case "$X_FORCE_UNCACHED_SCRIPT_ORDER" in
   0 | no | n ) exit 0;;
   * ) : ;;

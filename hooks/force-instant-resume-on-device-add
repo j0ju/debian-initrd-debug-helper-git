@@ -5,6 +5,13 @@ PREREQ=""
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_FORCE_INSTANT_RESUME_ON_DEV_ADD" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
 echo "I: add '$0'"
 
 

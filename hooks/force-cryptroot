@@ -8,6 +8,15 @@ if ! [ -f /usr/share/initramfs-tools/hooks/cryptroot ]; then
   echo "W: /usr/share/initramfs-tools/hooks/cryptroot does not exist."
 fi
 . /usr/share/initramfs-tools/hook-functions
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_FORCE_CRYPTROOT" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
+
+
 echo "I: add '$0'"
 
 (

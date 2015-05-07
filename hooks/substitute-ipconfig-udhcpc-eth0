@@ -6,6 +6,14 @@ PREREQ="busybox add-busybox-applets"
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_SUBST_IPCONFIG_UDHCP_ETH0" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
+
 echo "I: add '$0'"
 
 

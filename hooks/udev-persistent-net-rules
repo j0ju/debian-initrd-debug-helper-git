@@ -6,6 +6,13 @@ PREREQ="udev"
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_UDEV_PERSISTENT_NET_RULES" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
 echo "I: add '$0'"
 
 

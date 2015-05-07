@@ -11,6 +11,7 @@ prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
 . /usr/share/initramfs-tools/hook-functions
 
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
 case "$X_ADD_BUSYBOX_APPLETS" in
   0 | no | n ) exit 0;;
 esac
