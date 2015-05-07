@@ -18,7 +18,7 @@ prereqs() { echo "$PREREQ"; exit 0; }
 . /usr/share/initramfs-tools/hook-functions
 
 [ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
-case "$X_UDEV_PERSISTENT_NET_RULES" in
+case "$X_ADD_UVESAFB" in
   1 | yes | y ) :;;
   * ) exit 0;;
 esac
