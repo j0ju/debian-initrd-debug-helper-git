@@ -13,7 +13,7 @@ case "$X_STRIP_KMODS" in
   * ) exit 0;;
 esac
 
-
+echo "I: add '$0'"
 
 find "$DESTDIR"/lib/modules/ -name "*.ko" -exec strip --strip-debug {} +
 
