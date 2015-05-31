@@ -19,5 +19,8 @@ echo "I: add '$0'"
 dumpkeys < /dev/tty1 | gzip > "$DESTDIR"/etc/boottime.kmap.gz
 
 copy_exec /bin/loadkeys /bin/loadkeys
-copy_exec /usr/bin/kbd_mode /bin/kbd_mode
+
+if ! copy_exec /usr/bin/kbd_mode /bin/kbd_mode; then
+  copy_exec /bin/kbd_mode /bin/kbd_mode
+fi
 
