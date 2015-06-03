@@ -50,27 +50,30 @@ done < /etc/passwd
 
 # if dropbear is active use real hostkey from dropbear
 if pidof -s dropbear > /dev/null; then
-  for i in dss rsa; do 
+  for i in dss rsa ecdsa; do 
     if [ -f /etc/dropbear/dropbear_${i}_host_key ]; then
       cat /etc/dropbear/dropbear_${i}_host_key > "$DESTDIR"/etc/dropbear/dropbear_${i}_host_key
       chmod 600 "$DESTDIR"/etc/dropbear/dropbear_${i}_host_key
     fi
   done
+elif pidof -s sshd > /dev/null; then 
+  for type in rsa dsa:dss ecdsa; do
+    openssh_type="${type%:*}"
+    dropbear_type="${type#*:}"
+    if ! /usr/lib/dropbear/dropbearconvert openssh dropbear /etc/ssh/ssh_host_${openssh_type}_key "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key 1> /dev/null 2>&1; then
+      echo "W: converting /etc/ssh/ssh_host_${dropbear_type}_key failed" >&2
+    fi
+    chmod 600 "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key
+    if ! cmp /etc/dropbear/dropbear_${dropbear_type}_host_key "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key 2> /dev/null 1>&2; then
+      echo "W: systems dropbear and openssh $openssh_type keys differ" >&2
+      if [ "$X_FIX_CRYPTROOT_SYNC_KEYS" = y ]; then
+        echo "I: sync openssh $openssh_type key to system dropbear host key" >&2
+        cat "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key > /etc/dropbear/dropbear_${dropbear_type}_host_key
+        chmod 600 /etc/dropbear/dropbear_${dropbear_type}_host_key
+      fi
+    fi 
+  done
 fi
-if pidof -s sshd > /dev/null; then
-  if ! /usr/lib/dropbear/dropbearconvert openssh dropbear /etc/ssh/ssh_host_rsa_key "$DESTDIR"/etc/dropbear/dropbear_rsa_host_key 1> /dev/null 2>&1; then
-    echo "$0: ERROR:converting /etc/ssh/ssh_host_rsa_key failed" >&2
-    exit 1
-  fi
-  if ! /usr/lib/dropbear/dropbearconvert openssh dropbear /etc/ssh/ssh_host_dsa_key "$DESTDIR"/etc/dropbear/dropbear_dss_host_key 1> /dev/null 2>&1; then
-    echo "$0: ERROR:converting /etc/ssh/ssh_host_dsa_key failed" >&2
-    exit 1
-  fi
-  chmod 600 \
-    "$DESTDIR"/etc/dropbear/dropbear_rsa_host_key \
-    "$DESTDIR"/etc/dropbear/dropbear_dss_host_key
-fi
-#mv "$DESTDIR"/scripts/init-premount/dropbear "$DESTDIR"/scripts/init-top/dropbear
 
 cat > "$DESTDIR"/bin/CRYPT << 'EOF'
 #!/bin/sh
