@@ -72,7 +72,7 @@ if ! [ -f /ipconfig.lock ]; then
   trap 'rm -f /ipconfig.lock; exit 0;' EXIT QUIT INT KILL TERM HUP USR1 USR2
 
   mkdir -p /run/network
-  : > /run/net-omit-dropbear-output.conf
+  echo "# omit dropbear ooutput" > /run/net-initramfs.conf
   ifup -a
 
 fi
