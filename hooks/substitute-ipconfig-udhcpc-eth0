@@ -15,7 +15,7 @@ esac
 
 
 echo "I: add '$0'"
-
+set -e
 
 rm -f "$DESTDIR"/bin/ipconfig
 
@@ -23,21 +23,27 @@ mkdir -p "$DESTDIR"/etc/udhcpc/
 cp -a /etc/udhcpc/default.script "$DESTDIR"/etc/udhcpc/default.script
 chmod 755 "$DESTDIR"/etc/udhcpc/default.script
 
+cp -a /etc/hostname "$DESTDIR"/etc/hostname
+
 cat > "$DESTDIR"/bin/ipconfig << EOF
 #!/bin/sh
 
 if ! [ -f /ipconfig.lock ]; then
   exec 3> /ipconfig.lock
+
+  hostname="\$(cat /etc/hostname)"
+  echo "# omit dropbear ooutput" > /run/net-initramfs.conf
+
   trap 'rm -f /ipconfig.lock; exit 0;' EXIT QUIT INT KILL TERM HUP USR1 USR2
   if ! ip link show dev eth0 | grep ,UP > /dev/null; then
-    if ! /bin/busybox udhcpc -i eth0 -t 5 -T 5 -n -q; then
+    if ! /bin/busybox udhcpc -i eth0 -t 5 -T 5 -n -q -x hostname:\$hostname; then
       while [ -x /bin/busybox ]; do
         for i in /sys/class/net/*; do
           if="\${i##*/}"
           [ -f "\$i/type" ] || continue
           [ "\$(cat "\$i/type")" = 1 ] || continue
           ip link show dev \$if | grep ,UP > /dev/null && continue
-          /bin/busybox udhcpc -i \$if -t 3 -T 3 -n -q
+          /bin/busybox udhcpc -i \$if -t 3 -T 3 -n -q -x hostname:\$hostname
         done
         sleep 60
       done
