@@ -65,7 +65,7 @@ elif pidof -s sshd > /dev/null; then
     fi
     chmod 600 "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key
     if ! cmp /etc/dropbear/dropbear_${dropbear_type}_host_key "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key 2> /dev/null 1>&2; then
-      echo "W: systems dropbear and openssh $openssh_type keys differ" >&2
+      echo "W: system's dropbear and openssh $openssh_type keys differ" >&2
       if [ "$X_FIX_CRYPTROOT_SYNC_KEYS" = y ]; then
         echo "I: sync openssh $openssh_type key to system dropbear host key" >&2
         cat "$DESTDIR"/etc/dropbear/dropbear_${dropbear_type}_host_key > /etc/dropbear/dropbear_${dropbear_type}_host_key
