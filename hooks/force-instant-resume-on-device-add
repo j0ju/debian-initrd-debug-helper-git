@@ -26,11 +26,22 @@ EOF
 
 cat > "$DESTDIR/bin/FORCE-resume" << EOF
 #!/bin/sh
-exec >> /FORCE-resume.log 2>&1
-echo
-echo "### $(/bin/busybox date)"
-env
-(
+[ "\$SUBSYSTEM" = block ] || exit 0
+
+exec 1> /dev/null 2>&1
+
+# if X_FORCE_INSTANT_RESUME_ON_DEV_ADD_DEBUG=y, generate tautologic code
+if [ "$X_FORCE_INSTANT_RESUME_ON_DEV_ADD_DEBUG" = y ]; then
+  exec >> /run/FORCE-resume.\$SEQNUM.log 2>&1
+  echo "### \$(/bin/busybox date)"
+  echo
+  env
+  echo
+fi
+
+( exec < /dev/null
+
+#set -x # parse kernel cmdline
   for x in \$(cat /proc/cmdline); do
     case "\$x" in
       resume=* )
@@ -43,11 +54,53 @@ env
   done
   [ "\$noresume" = yes ] && exit 0
 
-  vgchange -ay
-  for i in 1 2 3 4 5; do
-    sh /scripts/local-premount/resume
-    sleep 1
+#set -x # translate UUID and LABEL
+  [ -z "\$resume" ] && exit 0
+  case \$resume in
+    LABEL=*)
+      resume="\${resume#LABEL=}"
+      # support any / in LABEL= path (escape to \x2f)
+      case "\${resume}" in
+        */*)
+          if command -v sed >/dev/null 2>&1; then
+            resume="\$(echo \${resume} | sed 's,/,\\x2f,g')"
+          else
+            if [ "$\{resume}" != "\${resume#/}" ]; then
+              resume="\x2f\${resume#/}"
+            fi
+            if [ "$\{resume}" != "\${resume%/}" ]; then
+              resume="\${resume%/}\x2f"
+            fi
+            IFS='/'
+            newresume=
+            for s in \$resume; do
+              newresume="\${newresume:+\${newresume}\\x2f}\${s}"
+            done
+            unset IFS
+            resume="\${newresume}"
+          fi
+      esac
+      resume="/dev/disk/by-label/\${resume}"
+      ;;
+    UUID=*)
+      resume="/dev/disk/by-uuid/\${resume#UUID=}"
+      ;;
+  esac
+
+#set -x # wait for resume block
+  for i in 1 2 1 2 1; do
+    [ -b "\$resume" ] && break
+    sleep \$i
   done
+  [ -b "\$resume" ] || exit 0
+  resume="\$(readlink -f "\$resume")"
+  [ "\$DEVNAME" = "\$resume" ] || exit 0
+  export resume
+
+#set -x # resume
+  vgchange -ay
+  sh /scripts/local-premount/resume
+
 ) &
 EOF
 chmod 755 "$DESTDIR/bin/FORCE-resume"
