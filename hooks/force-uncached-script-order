@@ -33,10 +33,10 @@ cat >> "$DESTDIR"/scripts/functions << EOF
 #--- $0 ---
 run_scripts() {
 	local initdir=\${1}
-	if [ -d ${initdir} ]; then
-		echo "\$initdir" >> /run/run_scripts.log
+	if [ -d ${initdir} ]; then :
+		#echo "\$initdir" >> /run/run_scripts.log
 	else
-		echo "E: \$initdir does not exist, skipping" >> /run/run_scripts.log
+		echo "E: \$initdir does not exist, skipping" # | tee -a /run/run_scripts.log
 		return
 	fi
 
@@ -44,7 +44,7 @@ run_scripts() {
 	_run_scripts_gen_order "\$initdir" | while read s; do
 		[ -e /conf/param.conf ] && . /conf/param.conf
 
-		echo "\$initdir/\$s \$@" >> /run/run_scripts.log
+		#echo "\$initdir/\$s \$@" >> /run/run_scripts.log
 		"\$initdir/\$s" "\$@"
 	done
 }
