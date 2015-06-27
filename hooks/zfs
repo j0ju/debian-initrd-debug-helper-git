@@ -9,7 +9,7 @@ PREREQ=""
 # These prerequisites are provided by the zfsutils package. The zdb utility is
 # not strictly required, but it can be useful at the initramfs recovery prompt.
 COPY_EXEC_LIST=
-COPY_EXEC_LIST="$COPY_EXEC_LIST /usr/sbin/splat"
+#COPY_EXEC_LIST="$COPY_EXEC_LIST /usr/sbin/splat"
 #COPY_EXEC_LIST="$COPY_EXEC_LIST /usr/sbin/spl"
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/zdb /sbin/zpool /sbin/zfs /sbin/mount.zfs"
 
