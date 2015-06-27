@@ -19,7 +19,7 @@ esac
 echo "I: add '$0'"
 
 set -e
-for app in $("$DESTDIR"/bin/busybox | awk 'BEGIN {p=0} /functions:$/ {p=1} /,/ { gsub(",", ""); if (p == 1) print $0 }'); do
+for app in $(/bin/busybox | awk 'BEGIN {p=0} /functions:$/ {p=1} /,/ { gsub(",", ""); if (p == 1) print $0 }'); do
 
   case "$APPLET_BLACKLIST" in
 		"$app" ) continue ;;
@@ -30,6 +30,6 @@ for app in $("$DESTDIR"/bin/busybox | awk 'BEGIN {p=0} /functions:$/ {p=1} /,/ {
 	[ -x "$DESTDIR/bin/$app" ] && continue
   [ -x "$DESTDIR/sbin/$app" ] && continue
 
-  ln -s busybox "$DESTDIR/bin/$app"
+  ln -sf busybox "$DESTDIR/bin/$app"
 done
 
