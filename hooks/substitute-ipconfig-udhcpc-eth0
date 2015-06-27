@@ -53,6 +53,6 @@ fi
 EOF
 chmod 755 "$DESTDIR"/bin/ipconfig
 
-[ -x "$DESTDIR"/sbin/ifconfig ] || ln -s ../bin/busybox "$DESTDIR"/sbin/ifconfig
-[ -x "$DESTDIR"/sbin/route ] || ln -s ../bin/busybox "$DESTDIR"/sbin/route
+[ -x "$DESTDIR"/sbin/ifconfig ] || ln -sf ../bin/busybox "$DESTDIR"/sbin/ifconfig
+[ -x "$DESTDIR"/sbin/route ] || ln -sf ../bin/busybox "$DESTDIR"/sbin/route
 
