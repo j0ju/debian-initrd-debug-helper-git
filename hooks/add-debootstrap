@@ -1,0 +1,44 @@
+#!/bin/sh
+
+PREREQ="busybox"
+
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = "prereqs" ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_ADD_DEBOOTSTRAP" in
+  0 | no | n ) exit 0;;
+esac
+echo "I: add '$0'"
+
+set -e
+for pkg in debian-keyring debian-archive-keyring gpgv wget debootstrap cdebootstrap-static; do
+  if dpkg -L $pkg 1> /dev/null 2>&1; then
+    dpkg -L $pkg | while read file; do
+      [ -d "$file" ] && continue
+      case "$file" in
+        /usr/share/doc/* | /usr/share/man* | /usr/man* | /usr/share/info/* | /usr/share/locale/* ) continue ;;
+        */bin/* | */sbin/* )
+          rm -f "/bin/${file##*/}"
+          copy_exec "$file" "/bin/${file##*/}"
+          ;;
+        * )
+          mkdir -p "$DESTDIR/${file%/*}"
+          cp -a "$file" "$DESTDIR/${file%/*}"
+          ;;
+      esac
+    done
+  else
+    echo "W: $pkg is not installed"
+  fi
+
+  case "$pkg" in
+    cdebootstrap* )
+      if [ -x "$DESTDIR/bin/$pkg" ]; then
+        rm -f "$DESTDIR/bin/debootstrap"
+        ln -s "$pkg" "$DESTDIR/bin/debootstrap"
+      fi
+      ;;
+  esac
+done
