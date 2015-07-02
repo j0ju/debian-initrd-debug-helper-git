@@ -56,7 +56,7 @@ if pidof -s dropbear > /dev/null; then
       chmod 600 "$DESTDIR"/etc/dropbear/dropbear_${i}_host_key
     fi
   done
-elif pidof -s sshd > /dev/null; then 
+elif pidof -s sshd > /dev/null; then
   for type in rsa dsa:dss ecdsa; do
     openssh_type="${type%:*}"
     dropbear_type="${type#*:}"
@@ -96,4 +96,5 @@ copy_exec /usr/bin/pgrep /bin/pgrep
 copy_exec /usr/bin/pkill /bin/pkill
 
 copy_exec /usr/bin/scp
+ln -s /usr/bin/scp "$DESTDIR"/bin/scp
 
