@@ -41,10 +41,8 @@ run_scripts() {
 	fi
 
 	shift
-	_run_scripts_gen_order "\$initdir" | while read s; do
+	for s in \$(_run_scripts_gen_order "\$initdir"); do
 		[ -e /conf/param.conf ] && . /conf/param.conf
-
-		#echo "\$initdir/\$s \$@" >> /run/run_scripts.log
 		"\$initdir/\$s" "\$@"
 	done
 }
