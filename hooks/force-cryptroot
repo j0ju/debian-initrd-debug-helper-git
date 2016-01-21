@@ -39,11 +39,17 @@ fi
 set -e
 if [ -f /etc/crypttab ]; then
   while read name dev key type comment attrib; do
+    # skip comments
     case "$name" in
       \#* ) continue ;;
     esac
 
-    [ "$type" = luks ] || continue
+    # only handle known crypto dev types like LUKS
+    case "$type" in
+      luks | luks,* | *,luks,* | *,luks ) ;;
+      *) continue ;;
+    esac
+
     echo "target=$name,source=$dev,key=$key,rootdev" >> "$DESTDIR"/conf/conf.d/cryptroot.new
   done < /etc/crypttab
 fi
