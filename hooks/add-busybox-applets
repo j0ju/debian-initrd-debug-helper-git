@@ -1,11 +1,9 @@
 #!/bin/sh
 
-PREREQ="busybox"
+PREREQ="busybox zz-busybox"
 
 APPLET_BLACKLIST=
 APPLET_BLACKLIST="$APPLET_BLACKLIST hostid"
-#APPLET_BLACKLIST="$APPLET_BLACKLIST depmod modprobe"
-#APPLET_BLACKLIST="$APPLET_BLACKLIST ip ifconfig"
 
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = "prereqs" ] && prereqs
