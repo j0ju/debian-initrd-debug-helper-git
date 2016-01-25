@@ -21,6 +21,7 @@ CMDS="$CMDS ip vconfig brctl ifconfig"
 CMDS="$CMDS run-parts"
 CMDS="$CMDS tty reset stty"
 CMDS="$CMDS minicom rz sz rx sx"
+CMDS="$CMDS keyctl"
 
 
 prereqs() { echo "$PREREQ"; exit 0; }
