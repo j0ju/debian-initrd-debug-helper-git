@@ -7,6 +7,10 @@
 
 PREREQ="cryptroot"
 
+CMDS=
+CMDS="$CMDS stty"
+CMDS="$CMDS keyctl"
+
 prereqs() { echo "$PREREQ"; exit 0; }
 [ "$1" = prereqs ] && prereqs
 if ! [ -f /usr/share/initramfs-tools/hooks/cryptroot ]; then
@@ -29,11 +33,26 @@ echo "I: add '$0'"
   . /usr/share/initramfs-tools/hooks/cryptroot
 )
 
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+for cmd in $CMDS; do
+  if file="$(which "$cmd")"; then
+    rm -f "$DESTDIR/bin/$cmd"
+    copy_exec "$file" "/bin"
+  else
+    echo "$0: warning $cmd not avail, thus not installed" >&2
+  fi
+done
+
 mkdir -p "$DESTDIR"/etc "$DESTDIR"/conf/conf.d
 
 if [ -f "$DESTDIR"/conf/conf.d/cryptroot ]; then
   grep resume "$DESTDIR"/conf/conf.d/cryptroot > "$DESTDIR"/conf/conf.d/cryptroot.new
   grep -v resume "$DESTDIR"/conf/conf.d/cryptroot >> "$DESTDIR"/conf/conf.d/cryptroot.new
+fi
+
+if [ -d /lib/cryptsetup/scripts ]; then
+  mkdir -p "$DESTDIR/lib/cryptsetup"
+  cp -a /lib/cryptsetup/scripts "$DESTDIR/lib/cryptsetup"
 fi
 
 set -e
@@ -50,7 +69,7 @@ if [ -f /etc/crypttab ]; then
       *) continue ;;
     esac
 
-    echo "target=$name,source=$dev,key=$key,rootdev" >> "$DESTDIR"/conf/conf.d/cryptroot.new
+    echo "target=$name,source=$dev,key=$key,rootdev,$type" >> "$DESTDIR"/conf/conf.d/cryptroot.new
   done < /etc/crypttab
 fi
 mv -f "$DESTDIR"/conf/conf.d/cryptroot.new "$DESTDIR"/conf/conf.d/cryptroot
