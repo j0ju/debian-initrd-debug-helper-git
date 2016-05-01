@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# force cryptroot if somehow initrd does not detect, that cryptroot is needed
+# - this forces include of cryptroot hook
+# - if we have an resume partition, it will be unlocked at first
+
+
+PREREQ="cryptroot"
+prereqs() { echo "$PREREQ"; exit 0; }
+[ "$1" = prereqs ] && prereqs
+. /usr/share/initramfs-tools/hook-functions
+
+
+
+[ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
+case "$X_FIX_SYSTEMD_GENERATORS_CRYPTROOT" in
+  1 | yes | y ) :;;
+  * ) exit 0;;
+esac
+
+
+
+echo "I: add '$0'"
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+LOCAL_SCRIPT="${0##*/}"
+INITRD_SCRIPT="$DESTDIR/scripts/local-bottom/$LOCAL_SCRIPT"
+
+mkdir -p "$DESTDIR/scripts/local-bottom"
+cat > "$INITRD_SCRIPT" << EOF
+#!/bin/sh
+
+[ -f /conf/conf.d/cryptroot ] || exit 0
+
+PREREQ="cryptroot"
+if [ "\$1" = prereqs ]; then
+  echo "\$PREREQ"
+  exit 0
+fi
+
+mkdir -p /run/systemd/generator
+
+EOF
+chmod 755 "$INITRD_SCRIPT"
+
+set -e
+if [ -f /etc/crypttab ]; then
+  while read name dev key type comment attrib; do
+    # skip comments
+    case "$name" in
+      \#* ) continue ;;
+    esac
+
+    systemd_unit_name="$(echo "$name" | sed -e 's/-/\\x2d/g')"
+    echo "test -b /dev/mapper/$name && ln -sf /dev/null '/run/systemd/generator/systemd-cryptsetup@${systemd_unit_name}.service'"
+
+  done < /etc/crypttab >> "$INITRD_SCRIPT"
+fi
+
