@@ -10,6 +10,7 @@ COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ifconfig"
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/route"
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/netstat"
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ss"
+COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ethtool"
 COPY_EXEC_LIST="$COPY_EXEC_LIST /sbin/ifup /sbin/ifdown /sbin/ifup"
 
 
@@ -30,7 +31,7 @@ echo "I: add '$0'"
 # remove binary to be replaced "ipconfig"
 rm -f "$DESTDIR"/bin/ipconfig
 
-# ensure we have no the busybox variants of some tools
+# ensure we have not the busybox variants of some tools
 for ii in $COPY_EXEC_LIST; do
   name="${ii##*/}"
   rm -f \
