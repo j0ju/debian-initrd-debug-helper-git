@@ -83,6 +83,9 @@ udev_settle() {
 parse_cmdline() {
   local ___i___ ___k___ ___v___
   for ___i___; do
+    case "\$___i___" in
+      *.* ) continue ;;
+    esac
     ___k___="\${___i___%%=*}"
     ___v___="\${___i___#*=}"
     eval "cmdline_\$___k___='\$___v___'"
