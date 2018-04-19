@@ -8,7 +8,7 @@ prereqs() { echo "$PREREQ"; exit 0; }
 . /usr/share/initramfs-tools/hook-functions
 
 [ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
-case "$X_SUBST_IPCONFIG_UDHCP_ETH0" in
+case "$X_SUBST_IPCONFIG_UDHCP" in
   1 | yes | y ) :;;
   * ) exit 0;;
 esac
@@ -32,23 +32,26 @@ if ! [ -f /ipconfig.lock ]; then
   exec 3> /ipconfig.lock
 
   hostname="\$(cat /etc/hostname)"
-  echo "# omit dropbear ooutput" > /run/net-initramfs.conf
 
   trap 'rm -f /ipconfig.lock; exit 0;' EXIT QUIT INT KILL TERM HUP USR1 USR2
-  if ! ip link show dev eth0 | grep ,UP > /dev/null; then
-    if ! /bin/busybox udhcpc -i eth0 -t 5 -T 5 -n -q -x hostname:\$hostname; then
-      while [ -x /bin/busybox ]; do
-        for i in /sys/class/net/*; do
-          if="\${i##*/}"
-          [ -f "\$i/type" ] || continue
-          [ "\$(cat "\$i/type")" = 1 ] || continue
-          ip link show dev \$if | grep ,UP > /dev/null && continue
-          /bin/busybox udhcpc -i \$if -t 3 -T 3 -n -q -x hostname:\$hostname
-        done
-        sleep 60
-      done
-    fi
-  fi
+  for i in /sys/class/net/*; do
+    while [ -x /bin/busybox ]; do # detect if we pivot_rooted
+      ls /run/net-*.conf 1> /dev/null 2>&1 && break
+      if="\${i##*/}"
+      [ -f "\$i/type" ] || break
+      [ "\$(cat "\$i/type")" = 1 ] || break
+      if /bin/busybox udhcpc -i \$if -t 3 -T 3 -n -q -x hostname:\$hostname 2> /dev/null 1>/dev/null; then
+        echo "# \$if configured"              > /run/net-\$if.conf
+        ip a show dev \$if | sed 's/^/#   /' >> /run/net-\$if.conf
+        cat /run/net-\$if.conf
+        break
+      fi
+      ip addr flush \$if
+      ip link set down \$if
+      sleep 1
+    done &
+  done
+  wait
 fi
 EOF
 chmod 755 "$DESTDIR"/bin/ipconfig
