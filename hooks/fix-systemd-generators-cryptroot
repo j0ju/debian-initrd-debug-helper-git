@@ -1,9 +1,6 @@
 #!/bin/sh
 
-# force cryptroot if somehow initrd does not detect, that cryptroot is needed
-# - this forces include of cryptroot hook
-# - if we have an resume partition, it will be unlocked at first
-
+# this generates some stub systemd units for ZFS on Crypt
 
 PREREQ="cryptroot"
 prereqs() { echo "$PREREQ"; exit 0; }
