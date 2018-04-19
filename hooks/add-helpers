@@ -22,7 +22,8 @@ CMDS="$CMDS run-parts"
 CMDS="$CMDS tty reset stty"
 CMDS="$CMDS minicom rz sz rx sx"
 CMDS="$CMDS keyctl"
-CMDS="$CMDS lsblk"
+CMDS="$CMDS flock"
+CMDS="$CMDS lsblk blkid"
 
 
 prereqs() { echo "$PREREQ"; exit 0; }
@@ -30,7 +31,7 @@ prereqs() { echo "$PREREQ"; exit 0; }
 . /usr/share/initramfs-tools/hook-functions
 
 [ -f /etc/initramfs-tools/conf.d/initramfs-x.conf ] && . /etc/initramfs-tools/conf.d/initramfs-x.conf
-case "$X_ADD_DEBUG_HELPERS" in
+case "$X_ADD_HELPERS" in
   0 | no | n ) exit 0;;
 esac
 
