@@ -32,38 +32,38 @@ sed -i -e 's/run_scripts/_\0_DISABLED_/' "$DESTDIR"/scripts/functions
 cat >> "$DESTDIR"/scripts/functions << EOF
 #--- $0 ---
 run_scripts() {
-	local initdir=\${1}
-	if [ -d ${initdir} ]; then :
-		#echo "\$initdir" >> /run/run_scripts.log
-	else
-		echo "E: \$initdir does not exist, skipping" # | tee -a /run/run_scripts.log
-		return
-	fi
+  local initdir=\${1}
+  if [ -d ${initdir} ]; then :
+    #echo "\$initdir" >> /run/run_scripts.log
+  else
+    echo "E: \$initdir does not exist, skipping" # | tee -a /run/run_scripts.log
+    return
+  fi
 
-	shift
-	for s in \$(_run_scripts_gen_order "\$initdir"); do
-		[ -e /conf/param.conf ] && . /conf/param.conf
-		"\$initdir/\$s" "\$@"
-	done
+  shift
+  for s in \$(_run_scripts_gen_order "\$initdir"); do
+    [ -e /conf/param.conf ] && . /conf/param.conf
+    "\$initdir/\$s" "\$@"
+  done
 }
 
 _run_scripts_get_dependencies() {
-	local initdir=\${1}
-	local s sdep
-	for s in "\$initdir"/*; do
-		[ "\$s" = "\$initdir/ORDER" ] && continue
-		[ -x "\$s" ] || continue
-		[ -f "\$s" ] || continue
-		s="\${s##*/}"
-		for sdep in "\$s" \$("\$initdir/\$s" prereqs); do
-			[ -x "\$initdir/\$sdep" ] || continue
-			[ -f "\$initdir/\$sdep" ] || continue
-			echo "\${sdep} \${s##*/}"
-		done
+  local initdir=\${1}
+  local s sdep
+  for s in "\$initdir"/*; do
+    [ "\$s" = "\$initdir/ORDER" ] && continue
+    [ -x "\$s" ] || continue
+    [ -f "\$s" ] || continue
+    s="\${s##*/}"
+    for sdep in "\$s" \$("\$initdir/\$s" prereqs); do
+      [ -x "\$initdir/\$sdep" ] || continue
+      [ -f "\$initdir/\$sdep" ] || continue
+      echo "\${sdep} \${s##*/}"
+    done
   done
 }
 _run_scripts_gen_order() {
-	local initdir=\${1}
-	_run_scripts_get_dependencies "\${initdir}" | tsort
+  local initdir=\${1}
+  _run_scripts_get_dependencies "\${initdir}" | tsort
 }
 EOF
