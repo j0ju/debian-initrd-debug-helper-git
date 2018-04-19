@@ -20,12 +20,12 @@ set -e
 for app in $(/bin/busybox | awk 'BEGIN {p=0} /functions:$/ {p=1} /,/ { gsub(",", ""); if (p == 1) print $0 }'); do
 
   case "$APPLET_BLACKLIST" in
-		"$app" ) continue ;;
-		*" $app" ) continue ;;
-		"$app"* ) continue ;;
-		*" $app "* ) continue ;;
-	esac
-	[ -x "$DESTDIR/bin/$app" ] && continue
+    "$app" ) continue ;;
+    *" $app" ) continue ;;
+    "$app"* ) continue ;;
+    *" $app "* ) continue ;;
+  esac
+  [ -x "$DESTDIR/bin/$app" ] && continue
   [ -x "$DESTDIR/sbin/$app" ] && continue
 
   ln -sf busybox "$DESTDIR/bin/$app"
