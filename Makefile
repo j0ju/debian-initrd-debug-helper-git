@@ -9,7 +9,9 @@ all:
 
 install:
 	@set -e; \
+	umask 022; \
 	for f in hooks/* scripts/*; do \
+	  [ -f "$${f}" ] || continue; \
 		dir="$(INITRAMDIR)/$${f%/*}"; \
 		dest="$(INITRAMDIR)/$${f}"; \
 		echo "INSTALL $${f} -> $${dest}"; \
