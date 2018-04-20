@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# LICENSE:   GPL, see LICENSE file
+# Author(s): Joerg Jungermann
+
 PREREQ="busybox add-busybox-applets"
 
 COPY_EXEC_LIST=

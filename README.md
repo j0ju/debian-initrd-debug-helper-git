@@ -11,3 +11,6 @@ For example
 1. As root: make install
 1. Copy example config from conf.d/initramfs-x.conf to /etc/initramfs-tools/conf.d/
 1. Modify config to your needs
+
+## License
+GPL, see `LICENSE` file

@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# LICENSE:   GPL, see LICENSE file
+# Author(s): Joerg Jungermann
+
 # force cryptroot if somehow initrd does not detect, that cryptroot is needed
 # - this forces include of cryptroot hook
 # - if we have an resume partition, it will be unlocked at first

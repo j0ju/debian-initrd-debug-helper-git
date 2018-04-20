@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# LICENSE:   GPL, see LICENSE file
+# Author(s): Joerg Jungermann
+
 PREREQ=""
 MANUAL_ADD_MODULES_LIST="$(lsmod | awk '$2 ~ "[0-9]+" {print $1}')"
 

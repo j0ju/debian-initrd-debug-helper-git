@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# LICENSE:   GPL, see LICENSE file
+# Author(s): Joerg Jungermann
+
 PREREQ="udev"
 
 FILES=

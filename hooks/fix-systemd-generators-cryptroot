@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# LICENSE:   GPL, see LICENSE file
+# Author(s): Joerg Jungermann
+
 # this generates some stub systemd units for ZFS on Crypt
 
 PREREQ="cryptroot"
