@@ -3,9 +3,15 @@
 
 INITRAMDIR = /etc/initramfs-tools
 
-all:
-	echo "as root call"
-	echo "	make install"
+all: help
+
+help:
+	@echo
+	@echo "	 make install - install all files"
+	@echo "	 make update  - updated newer files"
+	@echo "	 make diff    - shows differences between repository and local files"
+	@echo "	 make initrd  - generates new initramdisks"
+	@echo
 
 install:
 	@set -e; \
@@ -28,8 +34,8 @@ update:
 	  [ -f "$${f}" ] || continue; \
 		dir="$(INITRAMDIR)/$${f%/*}"; \
 		dest="$(INITRAMDIR)/$${f}"; \
-	  [ -f "$${dest}" ] || echo "SKIP $${f} (not loclly installed-> $${dest}"; \
 	  [ -f "$${dest}" ] || continue; \
+		cmp -b "$${dest}" "$${f}" > /dev/null && continue || :; \
 		echo "UPDATE $${f} -> $${dest}"; \
 		mkdir -p "$$dir"; \
 		cp -a "$$f" "$$dest"; \
