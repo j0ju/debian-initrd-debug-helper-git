@@ -23,3 +23,7 @@ install:
 
 update:
 	update-initramfs -k$$(uname -r) -u
+
+diff:
+	diff -uaNr hooks $(INITRAMDIR)/hooks
+	diff -uaNr scripts $(INITRAMDIR)/scripts
