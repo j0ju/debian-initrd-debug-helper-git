@@ -21,6 +21,22 @@ install:
 		chmod 744 "$$dest"; \
 	done
 
+update:
+	@set -e; \
+	umask 022; \
+	for f in hooks/* scripts/*; do \
+	  [ -f "$${f}" ] || continue; \
+		dir="$(INITRAMDIR)/$${f%/*}"; \
+		dest="$(INITRAMDIR)/$${f}"; \
+	  [ -f "$${dest}" ] || echo "SKIP $${f} (not loclly installed-> $${dest}"; \
+	  [ -f "$${dest}" ] || continue; \
+		echo "UPDATE $${f} -> $${dest}"; \
+		mkdir -p "$$dir"; \
+		cp -a "$$f" "$$dest"; \
+		chown root: "$$dest"; \
+		chmod 744 "$$dest"; \
+	done
+
 initramfs initrd:
 	update-initramfs -k$$(uname -r) -u
 
