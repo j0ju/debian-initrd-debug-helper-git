@@ -25,5 +25,5 @@ update:
 	update-initramfs -k$$(uname -r) -u
 
 diff:
-	diff -uaNr hooks $(INITRAMDIR)/hooks
-	diff -uaNr scripts $(INITRAMDIR)/scripts
+	@diff -uaNr $(INITRAMDIR)/hooks   hooks   || :
+	@diff -uaNr $(INITRAMDIR)/scripts scripts || :
