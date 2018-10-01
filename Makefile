@@ -21,7 +21,7 @@ install:
 		chmod 744 "$$dest"; \
 	done
 
-update:
+initramfs initrd:
 	update-initramfs -k$$(uname -r) -u
 
 diff:
